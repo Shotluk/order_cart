@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./Pages/Home";
 import Ordering from "./Pages/Ordering";
 import Cart from "./Pages/Cart";
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
     return (
