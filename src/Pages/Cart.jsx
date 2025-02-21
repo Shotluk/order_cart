@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
-import { firestore } from "../firebase_setup/firebase"; // Ensure the correct import path
+import { firestore } from "../firebase_setup/firebase";
 import { Container, Button, Card, ListGroup, Spinner } from "react-bootstrap";
 
 const CartPage = () => {
@@ -9,16 +9,26 @@ const CartPage = () => {
 
     useEffect(() => {
         const fetchCartItems = async () => {
-            const ref = collection(firestore, "details");
-            const querySnapshot = await getDocs(ref);
+            try {
+                const ref = collection(firestore, "details");
+                const querySnapshot = await getDocs(ref);
 
-            const items = querySnapshot.docs.map(doc => ({
-                id: doc.id,  // Store Firestore document ID
-                details: doc.data()
-            }));
+                const items = querySnapshot.docs.map(doc => {
+                    const rawData = doc.data();
+                    console.log("Fetched Data:", rawData); // Debugging
 
-            setCartItems(items);
-            setLoading(false);
+                    return {
+                        id: doc.id,
+                        details: rawData.details || {} // Unwrap extra nesting
+                    };
+                });
+
+                setCartItems(items);
+            } catch (error) {
+                console.error("Error fetching cart items:", error);
+            } finally {
+                setLoading(false);
+            }
         };
 
         fetchCartItems();
@@ -49,28 +59,36 @@ const CartPage = () => {
                 <p className="text-center">Empty Cart</p>
             ) : (
                 <div>
-                    {cartItems.map(({ id, details }) => (
-                        <Card key={id} className="mb-3 shadow">
-                            <Card.Body>
-                                <Card.Title><strong>Place:</strong> {details.Place}</Card.Title>
-                                <ListGroup variant="flush">
-                                    {details.Products.map((product, index) => (
-                                        <ListGroup.Item key={index}>
-                                            <strong>Product:</strong> {product.product} <br />
-                                            <strong>Quantity:</strong> {product.quantity}
-                                        </ListGroup.Item>
-                                    ))}
-                                </ListGroup>
-                                <Button 
-                                    variant="danger" 
-                                    className="mt-2"
-                                    onClick={() => handleDelete(id)}
-                                >
-                                    Delete
-                                </Button>
-                            </Card.Body>
-                        </Card>
-                    ))}
+                    {cartItems.map(({ id, details }) => {
+                        console.log("Rendering Details:", details); // Debugging
+
+                        return (
+                            <Card key={id} className="mb-3 shadow">
+                                <Card.Body>
+                                    <Card.Title><strong>Place:</strong> {details?.Place || "Unknown"}</Card.Title>
+                                    <ListGroup variant="flush">
+                                        {Array.isArray(details?.Products) && details.Products.length > 0 ? (
+                                            details.Products.map((productData, index) => (
+                                                <ListGroup.Item key={index}>
+                                                    <strong>Product:</strong> {productData?.product || "N/A"} <br />
+                                                    <strong>Quantity:</strong> {productData?.quantity || "N/A"}
+                                                </ListGroup.Item>
+                                            ))
+                                        ) : (
+                                            <ListGroup.Item>No products added</ListGroup.Item>
+                                        )}
+                                    </ListGroup>
+                                    <Button 
+                                        variant="danger" 
+                                        className="mt-2"
+                                        onClick={() => handleDelete(id)}
+                                    >
+                                        Delete
+                                    </Button>
+                                </Card.Body>
+                            </Card>
+                        );
+                    })}
                 </div>
             )}
         </Container>
